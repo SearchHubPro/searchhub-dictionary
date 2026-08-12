@@ -136,14 +136,20 @@
         まだ書き出していない <b id="hitsNew" style="font-size:20px; color:#C9962B;">–</b> 件
         <span style="color:#a0aec0;">／ 累計 <span id="hitsTotal">–</span> 件</span>
       </div>
-      <button onclick="downloadHits()" style="background:#C9962B; color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;">
-        <i class="fas fa-download"></i> CSVを書き出す
-      </button>
+      <div style="display:flex; gap:8px;">
+        <button onclick="downloadHits(false)" style="background:#C9962B; color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap;">
+          <i class="fas fa-download"></i> 新着だけ
+        </button>
+        <button onclick="downloadHits(true)" style="background:#fff; color:#8A6510; border:1px solid #EFDCB4; padding:10px 14px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap;">
+          全部
+        </button>
+      </div>
     </div>
     <div class="note" style="margin-top:8px;">
       書き出したCSVを、アプリの<b>リサーチリスト</b>の「KeepaCSVをドロップ」に落とすと、
       利益率やヤフオク確認の条件で自動的に絞り込まれます。<br>
-      一度書き出したものは次から出てきません。毎日押せば、その日の新着だけが取れます。
+      <b>新着だけ</b>… まだ書き出していないぶん。押すと印が付いて、次からは出てきません。毎日押せばその日の新着が取れます。<br>
+      <b>全部</b>… これまでに見つけた全件。印は変わらないので、何度でも押せます。
     </div>
   </div>
 
@@ -271,15 +277,19 @@ async function load() {
   }
 }
 
-async function downloadHits() {
+async function downloadHits(all) {
   const key = get("shd_key", "");
   if (!key) { openCfg(); return; }
-  if (!confirm("まだ書き出していないSR・SをCSVにします。\n書き出したものは次から出てきません。")) return;
+  const msg = all
+    ? "これまでに見つけたSR・Sを全部CSVにします。\n印は変わらないので、何度でも押せます。"
+    : "まだ書き出していないSR・SをCSVにします。\n書き出したものは次から出てきません。";
+  if (!confirm(msg)) return;
   try {
     const res = await fetch(API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "hits", licenseKey: key, mark: true }),
+      // 全部のときは印を付けない（新着だけの書き出しを壊さないため）
+      body: JSON.stringify({ action: "hits", licenseKey: key, all: !!all, mark: !all }),
     });
     const r = await res.json();
     if (!r || !r.success) { alert(r && r.message ? r.message : "取得に失敗しました"); return; }
@@ -292,7 +302,7 @@ async function downloadHits() {
     const d = new Date();
     const p2 = (x) => String(x).padStart(2, "0");
     a.href = URL.createObjectURL(blob);
-    a.download = `SRS_${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${r.count}件.csv`;
+    a.download = `SRS_${all ? "全部_" : ""}${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${r.count}件.csv`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     load();
