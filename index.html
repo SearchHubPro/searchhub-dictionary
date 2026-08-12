@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="辞書">
+<title>辞書の進み具合</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * { box-sizing: border-box; }
+  html { overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Meiryo", sans-serif;
+    margin: 0; background: #f7fafc; color: #2d3748;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .header {
+    background: #fff; border-bottom: 2px solid #000; display: flex;
+    align-items: center; justify-content: space-between;
+    padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .header b { font-size: 15px; }
+  .header .sub { font-size: 10px; color: #a0aec0; font-weight: 700; letter-spacing: .06em; }
+  .header button { background: none; border: none; font-size: 17px; color: #4a5568; cursor: pointer; padding: 6px; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 14px; }
+  .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+  .card h3 { margin: 0 0 10px; font-size: 13px; color: #1a365d; }
+
+  .state { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 700; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .on { background: #38a169; box-shadow: 0 0 0 4px rgba(56,161,105,.15); }
+  .off { background: #a0aec0; }
+
+  .kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi > div { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }
+  .kpi .label { font-size: 11px; color: #718096; font-weight: 700; margin-bottom: 4px; }
+  .kpi .val { font-size: 22px; font-weight: 900; color: #1a365d; line-height: 1.1; }
+  .kpi .unit { font-size: 11px; color: #a0aec0; font-weight: 700; margin-left: 3px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { border-bottom: 1px solid #edf2f7; padding: 8px 6px; text-align: left; }
+  th { color: #718096; font-size: 11px; white-space: nowrap; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .bar { height: 6px; background: #edf2f7; border-radius: 99px; overflow: hidden; margin-top: 4px; }
+  .bar span { display: block; height: 100%; background: linear-gradient(90deg,#4299e1,#2b6cb0); }
+  .badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .b-now { background: #e6fffa; color: #234e52; }
+  .b-done { background: #f0fff4; color: #22543d; }
+  .b-wait { background: #edf2f7; color: #718096; }
+  .b-off { background: #fff5f5; color: #c53030; }
+
+  .note { font-size: 12px; color: #718096; line-height: 1.8; }
+  .log { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; color: #4a5568;
+         background: #f7fafc; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
+
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99;
+           align-items: center; justify-content: center; padding: 18px; }
+  .modal .inner { background: #fff; border-radius: 12px; padding: 18px; width: 100%; max-width: 360px; }
+  .modal input { width: 100%; padding: 10px; border: 1px solid #cbd5e0; border-radius: 8px; font-size: 14px; margin-top: 6px; }
+  .modal .btns { display: flex; gap: 8px; margin-top: 14px; }
+  .modal button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+  .gray { background: #e2e8f0; color: #4a5568; }
+  .navy { background: #1a365d; color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <b>辞書の進み具合</b>
+    <div class="sub">DICTIONARY</div>
+  </div>
+  <div>
+    <button onclick="load()" title="更新"><i class="fas fa-rotate"></i></button>
+    <button onclick="openCfg()" title="設定"><i class="fas fa-cog"></i></button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="state">
+      <span class="dot off" id="dot"></span>
+      <span id="stateText">読み込み中...</span>
+    </div>
+    <div class="note" id="stateNote" style="margin-top:6px;"></div>
+  </div>
+
+  <div class="kpi">
+    <div><div class="label">カテゴリー辞書</div><div class="val"><span id="kDict">–</span><span class="unit">件</span></div></div>
+    <div><div class="label">商品辞書</div><div class="val"><span id="kProd">–</span><span class="unit">件</span></div></div>
+    <div><div class="label">今日ふえた</div><div class="val"><span id="kToday">–</span><span class="unit">件</span></div></div>
+    <div><div class="label">待ち行列</div><div class="val"><span id="kQueue">–</span><span class="unit">件</span></div></div>
+  </div>
+
+  <div class="card">
+    <h3>SR・S の見つかり</h3>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+      <div style="font-size:13px; color:#4a5568;">
+        まだ書き出していない <b id="hitsNew" style="font-size:20px; color:#C9962B;">–</b> 件
+        <span style="color:#a0aec0;">／ 累計 <span id="hitsTotal">–</span> 件</span>
+      </div>
+      <button onclick="downloadHits()" style="background:#C9962B; color:#fff; border:none; padding:10px 16px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;">
+        <i class="fas fa-download"></i> CSVを書き出す
+      </button>
+    </div>
+    <div class="note" style="margin-top:8px;">
+      書き出したCSVを、アプリの<b>リサーチリスト</b>の「KeepaCSVをドロップ」に落とすと、
+      利益率やヤフオク確認の条件で自動的に絞り込まれます。<br>
+      一度書き出したものは次から出てきません。毎日押せば、その日の新着だけが取れます。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>カテゴリー</h3>
+    <table id="catTable"><tbody><tr><td class="note">読み込み中...</td></tr></tbody></table>
+  </div>
+
+  <div class="card">
+    <h3>最後の記録</h3>
+    <div class="log" id="lastNote">–</div>
+    <div class="note" id="lastMeta" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="card">
+    <h3>この画面について</h3>
+    <div class="note">
+      集める作業はサーバー側で動いています。この画面は<b>見るだけ</b>で、閉じても止まりません。<br>
+      毎日 12時〜21時 のあいだだけ動き、Keepaのトークンが100を切ったら休みます。<br>
+      1周し終わったら、また最初のカテゴリーから回り直します。
+    </div>
+  </div>
+
+</div>
+
+<div class="modal" id="cfgModal">
+  <div class="inner">
+    <h3 style="margin:0 0 4px; font-size:15px;">ライセンスキー</h3>
+    <div class="note">進み具合を見るために使います。この端末に保存されます。</div>
+    <input type="text" id="cfgKey" placeholder="ライセンスキーを貼り付け">
+    <div class="btns">
+      <button class="gray" onclick="closeCfg()">閉じる</button>
+      <button class="navy" onclick="saveCfg()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = "https://ihsjwsdwjuapfdhtocmq.supabase.co/functions/v1/dict-collector";
+
+function get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }
+function set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+function n(v) { return (Number(v) || 0).toLocaleString(); }
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])); }
+
+function openCfg() { document.getElementById("cfgKey").value = get("shd_key", ""); document.getElementById("cfgModal").style.display = "flex"; }
+function closeCfg() { document.getElementById("cfgModal").style.display = "none"; }
+function saveCfg() { set("shd_key", document.getElementById("cfgKey").value.trim()); closeCfg(); load(); }
+
+function fmtTime(iso) {
+  if (!iso) return "–";
+  const d = new Date(iso);
+  const p = (x) => String(x).padStart(2, "0");
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function load() {
+  const key = get("shd_key", "");
+  const st = document.getElementById("stateText");
+  const note = document.getElementById("stateNote");
+  if (!key) { st.innerText = "ライセンスキーを入れてください"; openCfg(); return; }
+
+  st.innerText = "読み込み中...";
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "status", licenseKey: key }),
+    });
+    const r = await res.json();
+    if (!r || !r.success) { st.innerText = r && r.message ? r.message : "取得に失敗しました"; return; }
+
+    // 動いているか
+    const dot = document.getElementById("dot");
+    if (r.inWindow) {
+      dot.className = "dot on";
+      st.innerText = "動いています";
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。21時になると止まり、明日の12時にまた動き出します。`;
+    } else {
+      dot.className = "dot off";
+      st.innerText = "お休み中";
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。動くのは12時〜21時です。`;
+    }
+
+    const p = r.progress || {};
+    document.getElementById("kDict").innerText = n(r.dictTotal);
+    document.getElementById("kProd").innerText = n(r.productTotal);
+    document.getElementById("kToday").innerText = n(p.added_today);
+    document.getElementById("kQueue").innerText = n(r.queueLeft);
+    document.getElementById("hitsNew").innerText = n(r.hitsNew);
+    document.getElementById("hitsTotal").innerText = n(r.hitsTotal);
+
+    // カテゴリー
+    const cats = r.categories || [];
+    let html = "<tr><th>カテゴリー</th><th>状態</th><th>周回</th><th style='text-align:right'>全体</th></tr>";
+    if (cats.length === 0) html += "<tr><td colspan='4' class='note'>登録がありません</td></tr>";
+    for (const c of cats) {
+      let badge = '<span class="badge b-wait">待ち</span>';
+      if (!c.enabled) badge = '<span class="badge b-off">除外</span>';
+      else if (c.done_at) badge = '<span class="badge b-done">完了</span>';
+      else if (String(c.category_id || "") === String(p.current_category_id || "")) badge = '<span class="badge b-now">実行中</span>';
+
+      const total = Number(c.total_found) || 0;
+      const iv = Number(c.loop_interval);
+      let barHtml = "";
+      if (String(c.category_id || "") === String(p.current_category_id || "") && total > 0) {
+        const done = Math.min(100, Math.round(((Number(p.page) || 0) * 10000 / total) * 100));
+        barHtml = `<div class="bar"><span style="width:${done}%"></span></div>`;
+      }
+      html += `<tr>
+        <td>${esc(c.name)}${barHtml}<div class="note" style="font-size:10.5px;">${esc(c.note || "")}</div></td>
+        <td>${badge}</td>
+        <td class="note" style="font-size:11px; white-space:nowrap;">${iv === 0 ? "初回だけ" : (iv === 1 ? "毎周" : iv + "周に1回")}</td>
+        <td class="num">${total > 0 ? n(total) : "–"}</td>
+      </tr>`;
+    }
+    document.getElementById("catTable").innerHTML = "<tbody>" + html + "</tbody>";
+
+    document.getElementById("lastNote").innerText = p.note || "–";
+    document.getElementById("lastMeta").innerText =
+      `最後に動いた時刻 ${fmtTime(p.last_run_at)}　／　そのときのKeepa残り ${p.last_tokens_left != null ? n(p.last_tokens_left) : "–"}　／　累計 ${n(p.total_added)} 件`;
+
+  } catch (e) {
+    st.innerText = "通信できませんでした";
+  }
+}
+
+async function downloadHits() {
+  const key = get("shd_key", "");
+  if (!key) { openCfg(); return; }
+  if (!confirm("まだ書き出していないSR・SをCSVにします。\n書き出したものは次から出てきません。")) return;
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "hits", licenseKey: key, mark: true }),
+    });
+    const r = await res.json();
+    if (!r || !r.success) { alert(r && r.message ? r.message : "取得に失敗しました"); return; }
+    if (!r.count) { alert("書き出すものがありません。"); return; }
+
+    // 🌟 1行1ASIN。アプリのリサーチリストの取り込みがこの形を読む。
+    const body = "ASIN\n" + r.rows.map(x => x.asin).join("\n");
+    const blob = new Blob(["\ufeff" + body], { type: "text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    const d = new Date();
+    const p2 = (x) => String(x).padStart(2, "0");
+    a.href = URL.createObjectURL(blob);
+    a.download = `SRS_${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}_${r.count}件.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    load();
+  } catch (e) {
+    alert("通信できませんでした");
+  }
+}
+
+window.addEventListener("load", function () {
+  load();
+  // 開きっぱなしでも最新が見えるように、1分ごとに読み直す
+  setInterval(load, 60 * 1000);
+});
+</script>
+</body>
+</html>
