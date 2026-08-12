@@ -4,8 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="辞書">
-<title>辞書の進み具合</title>
+<meta name="apple-mobile-web-app-title" content="Dictionary">
+<meta name="theme-color" content="#0F1729">
+<title>SearchHub Dictionary</title>
+<link rel="apple-touch-icon" href="https://i.ibb.co/JFs8ktR7/Chat-GPT-Image-2026-8-12-20-08-01.png">
+<link rel="icon" href="https://i.ibb.co/JFs8ktR7/Chat-GPT-Image-2026-8-12-20-08-01.png">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   * { box-sizing: border-box; }
@@ -16,14 +19,41 @@
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
   }
   .header {
-    background: #fff; border-bottom: 2px solid #000; display: flex;
-    align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10; overflow: hidden;
+    background:
+      radial-gradient(120% 160% at 12% 0%, #1B2942 0%, rgba(27,41,66,0) 60%),
+      linear-gradient(120deg, #0F1729 0%, #16233A 55%, #0F1729 100%);
+    border-bottom: 1px solid rgba(201,150,43,.35);
+    display: flex; align-items: center; justify-content: space-between;
     padding: calc(14px + env(safe-area-inset-top)) 18px 14px;
-    position: sticky; top: 0; z-index: 10;
   }
-  .header b { font-size: 15px; }
-  .header .sub { font-size: 10px; color: #a0aec0; font-weight: 700; letter-spacing: .06em; }
-  .header button { background: none; border: none; font-size: 17px; color: #4a5568; cursor: pointer; padding: 6px; }
+  /* 金の細い線を下端に一本 */
+  .header::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: linear-gradient(90deg, rgba(201,150,43,0) 0%, #C9962B 35%, #E7C77A 50%, #C9962B 65%, rgba(201,150,43,0) 100%);
+  }
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .brand img {
+    width: 38px; height: 38px; border-radius: 10px; flex: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4), 0 0 0 1px rgba(201,150,43,.45);
+  }
+  .brand .name {
+    font-size: 16px; font-weight: 900; color: #fff; line-height: 1.15;
+    letter-spacing: .02em; white-space: nowrap;
+  }
+  .brand .name em { font-style: normal; color: #E7C77A; }
+  .brand .sub {
+    font-size: 9.5px; font-weight: 700; letter-spacing: .22em;
+    color: rgba(255,255,255,.45); margin-top: 2px;
+  }
+  .header .tools { display: flex; gap: 4px; flex: none; }
+  .header button {
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    width: 34px; height: 34px; border-radius: 9px;
+    font-size: 14px; color: #E7C77A; cursor: pointer; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .header button:active { background: rgba(231,199,122,.18); }
 
   .wrap { max-width: 720px; margin: 0 auto; padding: 14px; }
   .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
@@ -69,11 +99,14 @@
 <body>
 
 <div class="header">
-  <div>
-    <b>辞書の進み具合</b>
-    <div class="sub">DICTIONARY</div>
+  <div class="brand">
+    <img src="https://i.ibb.co/JFs8ktR7/Chat-GPT-Image-2026-8-12-20-08-01.png" alt="">
+    <div>
+      <div class="name">SearchHub <em>Dictionary</em></div>
+      <div class="sub">辞書の進み具合</div>
+    </div>
   </div>
-  <div>
+  <div class="tools">
     <button onclick="load()" title="更新"><i class="fas fa-rotate"></i></button>
     <button onclick="openCfg()" title="設定"><i class="fas fa-cog"></i></button>
   </div>
