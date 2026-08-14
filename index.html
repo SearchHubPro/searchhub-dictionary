@@ -168,7 +168,7 @@
     <h3>この画面について</h3>
     <div class="note">
       集める作業はサーバー側で動いています。この画面は<b>見るだけ</b>で、閉じても止まりません。<br>
-      毎日 12時〜21時 のあいだだけ動き、Keepaのトークンが100を切ったら休みます。<br>
+      毎日 10時〜21時 のあいだだけ動き、Keepaのトークンが500を切ったら休みます。<br>
       1周し終わったら、また最初のカテゴリーから回り直します。
     </div>
   </div>
@@ -227,11 +227,11 @@ async function load() {
     if (r.inWindow) {
       dot.className = "dot on";
       st.innerText = "動いています";
-      note.innerText = `いまは日本時間 ${r.jstHour} 時台。21時になると止まり、明日の12時にまた動き出します。`;
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。21時になると止まり、明日の10時にまた動き出します。`;
     } else {
       dot.className = "dot off";
       st.innerText = "お休み中";
-      note.innerText = `いまは日本時間 ${r.jstHour} 時台。動くのは12時〜21時です。`;
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。動くのは10時〜21時です。`;
     }
 
     const p = r.progress || {};
