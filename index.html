@@ -130,7 +130,7 @@
   </div>
 
   <div class="card">
-    <h3>SR・S の見つかり</h3>
+    <h3>SSR の見つかり</h3>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
       <div style="font-size:13px; color:#4a5568;">
         まだ書き出していない <b id="hitsNew" style="font-size:20px; color:#C9962B;">–</b> 件
@@ -281,8 +281,8 @@ async function downloadHits(all) {
   const key = get("shd_key", "");
   if (!key) { openCfg(); return; }
   const msg = all
-    ? "これまでに見つけたSR・Sを全部CSVにします。\n印は変わらないので、何度でも押せます。"
-    : "まだ書き出していないSR・SをCSVにします。\n書き出したものは次から出てきません。";
+    ? "これまでに見つけたSSRを全部CSVにします。\n印は変わらないので、何度でも押せます。"
+    : "まだ書き出していないSSRをCSVにします。\n書き出したものは次から出てきません。";
   if (!confirm(msg)) return;
   try {
     const res = await fetch(API, {
