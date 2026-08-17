@@ -120,6 +120,21 @@
       <span id="stateText">読み込み中...</span>
     </div>
     <div class="note" id="stateNote" style="margin-top:6px;"></div>
+
+    <!-- 🌟 動く時間帯をここで変える。保存したらすぐ効く(cronは1日中呼びに来ている) -->
+    <div style="margin-top:12px; padding-top:12px; border-top:1px dashed #e2e8f0; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span style="font-size:13px; font-weight:700; color:#4a5568;">動く時間帯</span>
+      <select id="winStart" style="padding:8px 10px; border-radius:8px; border:1px solid #cbd5e0; font-size:13px; font-weight:700; background:#fff; color:#1a365d; cursor:pointer;"></select>
+      <span style="font-size:13px; color:#718096;">時 から</span>
+      <select id="winEnd" style="padding:8px 10px; border-radius:8px; border:1px solid #cbd5e0; font-size:13px; font-weight:700; background:#fff; color:#1a365d; cursor:pointer;"></select>
+      <span style="font-size:13px; color:#718096;">時 まで</span>
+      <button onclick="saveWindow()" id="winSaveBtn" style="background:#1a365d; color:#fff; border:none; padding:8px 16px; border-radius:8px; font-weight:700; font-size:13px; cursor:pointer;">保存</button>
+      <span id="winMsg" style="font-size:12px; font-weight:700;"></span>
+    </div>
+    <div class="note" style="margin-top:6px;">
+      日本時間です。「8時から21時まで」なら、20時台の最後まで動いて21時ちょうどに止まります。<br>
+      保存したらすぐ効きます。次の5分の区切りから、新しい時間帯で動き出します。
+    </div>
   </div>
 
   <div class="kpi">
@@ -168,7 +183,8 @@
     <h3>この画面について</h3>
     <div class="note">
       集める作業はサーバー側で動いています。この画面は<b>見るだけ</b>で、閉じても止まりません。<br>
-      毎日 10時〜21時 のあいだだけ動き、Keepaのトークンが500を切ったら休みます。<br>
+      決めた時間帯のあいだだけ動き、Keepaのトークンが500を切ったら休みます。<br>
+      時間帯は上の「動く時間帯」で変えられます。<br>
       1周し終わったら、また最初のカテゴリーから回り直します。
     </div>
   </div>
@@ -206,6 +222,60 @@ function fmtTime(iso) {
   return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+// 🌟 時刻の選択肢を作る。始まりは0〜23時、終わりは1〜24時。
+//   24時は「その日いっぱい」という意味。
+function buildHourOptions(startVal, endVal) {
+  const s = document.getElementById("winStart");
+  const e = document.getElementById("winEnd");
+  if (!s || !e) return;
+  if (s.options.length === 0) {
+    for (let h = 0; h <= 23; h++) s.appendChild(new Option(String(h), String(h)));
+    for (let h = 1; h <= 24; h++) e.appendChild(new Option(String(h), String(h)));
+  }
+  s.value = String(startVal);
+  e.value = String(endVal);
+}
+
+// 🌟 動く時間帯を保存する。
+//   サーバー側の pg_cron は1日中5分おきに呼びに来る形にしてあるので、
+//   ここを直すだけで効く。cronの設定を触る必要はない。
+async function saveWindow() {
+  const key = get("shd_key", "");
+  const btn = document.getElementById("winSaveBtn");
+  const msg = document.getElementById("winMsg");
+  const ws = parseInt(document.getElementById("winStart").value, 10);
+  const we = parseInt(document.getElementById("winEnd").value, 10);
+  msg.style.color = "#718096";
+  if (!(ws < we)) {
+    msg.style.color = "#c53030";
+    msg.innerText = "始まりは終わりより前にしてください";
+    return;
+  }
+  btn.disabled = true;
+  msg.innerText = "保存中...";
+  try {
+    const res = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "setWindow", licenseKey: key, windowStart: ws, windowEnd: we }),
+    });
+    const r = await res.json();
+    if (r && r.success) {
+      msg.style.color = "#2f855a";
+      msg.innerText = `${ws}時〜${we}時にしました`;
+      load();
+    } else {
+      msg.style.color = "#c53030";
+      msg.innerText = (r && r.message) ? r.message : "保存できませんでした";
+    }
+  } catch (err) {
+    msg.style.color = "#c53030";
+    msg.innerText = "通信できませんでした";
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function load() {
   const key = get("shd_key", "");
   const st = document.getElementById("stateText");
@@ -222,16 +292,21 @@ async function load() {
     const r = await res.json();
     if (!r || !r.success) { st.innerText = r && r.message ? r.message : "取得に失敗しました"; return; }
 
+    // 🌟 いま保存されている時間帯を、選択欄と文章の両方に反映する
+    const ws = (r.windowStart === undefined || r.windowStart === null) ? 8 : Number(r.windowStart);
+    const we = (r.windowEnd === undefined || r.windowEnd === null) ? 21 : Number(r.windowEnd);
+    buildHourOptions(ws, we);
+
     // 動いているか
     const dot = document.getElementById("dot");
     if (r.inWindow) {
       dot.className = "dot on";
       st.innerText = "動いています";
-      note.innerText = `いまは日本時間 ${r.jstHour} 時台。21時になると止まり、明日の10時にまた動き出します。`;
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。${we}時になると止まり、明日の${ws}時にまた動き出します。`;
     } else {
       dot.className = "dot off";
       st.innerText = "お休み中";
-      note.innerText = `いまは日本時間 ${r.jstHour} 時台。動くのは10時〜21時です。`;
+      note.innerText = `いまは日本時間 ${r.jstHour} 時台。動くのは${ws}時〜${we}時です。`;
     }
 
     const p = r.progress || {};
